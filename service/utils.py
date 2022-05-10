@@ -1,3 +1,4 @@
+from datetime import timedelta
 import hashlib
 import bcrypt
 
@@ -14,3 +15,12 @@ def blake2b(data: str, size=32, key=""):
         key=str.encode(key),
         digest_size=size
     ).digest()
+
+def round_day(created):
+    return created - timedelta(
+        days=created.day % 1,
+        hours=created.hour,
+        minutes=created.minute,
+        seconds=created.second,
+        microseconds=created.microsecond
+    )
