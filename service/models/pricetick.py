@@ -2,7 +2,6 @@ from datetime import datetime
 from decimal import Decimal
 from .base import db
 from pony import orm
-from .. import utils
 
 class PriceTick(db.Entity):
     _table_ = "chart_price_ticks"
@@ -17,7 +16,7 @@ class PriceTick(db.Entity):
     @property
     def display(self):
         return {
-            "day": utils.round_day(self.timestamp),
+            "day": self.timestamp,
             "latest_price": self.latest_price,
             "min_price": self.min_price,
             "max_price": self.max_price,

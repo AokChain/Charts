@@ -2,6 +2,7 @@ from requests import Session, TooManyRedirects, ConnectionError, Timeout
 from service.models import PriceTick
 from dateutil import parser
 from pony import orm
+from .. import utils
 
 @orm.db_session
 def sync_price():
@@ -14,18 +15,14 @@ def sync_price():
 
         last_updated = parser.parse(market_data["last_updated"])
 
-        if not (PriceTick.get_for_update(timestamp=last_updated)):
+        if not (pricetick := PriceTick.get_for_update(timestamp=utils.round_day(last_updated))):
+            pricetick = PriceTick(timestamp=utils.round_day(last_updated))
 
-            data = {
-                "timestamp": last_updated,
-                "latest_price": market_data["current_price"]["usd"],
-                "min_price": market_data["low_24h"]["usd"],
-                "max_price":  market_data["high_24h"]["usd"],
-                "volume":  market_data["total_volume"]["usd"],
-                "market_cap":  market_data["fully_diluted_valuation"]["usd"]
-            }
-
-            PriceTick(**data)
+        pricetick.latest_price = market_data["current_price"]["usd"]
+        pricetick.min_price = market_data["low_24h"]["usd"]
+        pricetick.max_price = market_data["high_24h"]["usd"]
+        pricetick.volume = market_data["total_volume"]["usd"]
+        pricetick.market_cap = market_data["fully_diluted_valuation"]["usd"]
         
     except (TooManyRedirects, ConnectionError, Timeout) as e:
         print(e)
