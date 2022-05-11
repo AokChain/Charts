@@ -16,7 +16,7 @@ class PriceTick(db.Entity):
     @property
     def display(self):
         return {
-            "day": self.timestamp,
+            "timestamp": int(self.timestamp.timestamp()),
             "latest_price": self.latest_price,
             "min_price": self.min_price,
             "max_price": self.max_price,
