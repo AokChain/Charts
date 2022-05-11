@@ -12,10 +12,8 @@ def create_app():
     CORS(app)
 
     with app.app_context():
-        from .profile import profile
-        from .auth import auth
+        from .chart import chart
 
-        app.register_blueprint(profile)
-        app.register_blueprint(auth)
+        app.register_blueprint(chart)
 
         return app
