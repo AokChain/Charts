@@ -1,6 +1,7 @@
 from requests import Session, TooManyRedirects, ConnectionError, Timeout
 from service.models import PriceTick
 from dateutil import parser
+from datetime import datetime
 from pony import orm
 from .. import utils
 
@@ -13,7 +14,9 @@ def sync_price():
         req = session.get(url).json()
         market_data = req["market_data"]
 
-        last_updated = parser.parse(market_data["last_updated"])
+        last_updated = market_data["last_updated"].replace("Z", "")
+
+        last_updated = datetime.fromisoformat(last_updated)
 
         if not (pricetick := PriceTick.get_for_update(timestamp=utils.round_day(last_updated))):
             pricetick = PriceTick(timestamp=utils.round_day(last_updated))
