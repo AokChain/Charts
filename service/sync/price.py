@@ -1,6 +1,5 @@
 from requests import Session, TooManyRedirects, ConnectionError, Timeout
 from service.models import PriceTick
-from dateutil import parser
 from datetime import datetime
 from pony import orm
 from .. import utils
