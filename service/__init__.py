@@ -17,7 +17,9 @@ def create_app():
 
     with app.app_context():
         from .chart import chart
+        from .stats import stats
 
         app.register_blueprint(chart)
+        app.register_blueprint(stats)
 
         return app

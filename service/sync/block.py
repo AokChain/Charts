@@ -5,6 +5,7 @@ from ..methods import Transaction
 from datetime import datetime
 from ..methods import General
 from ..methods import Block
+from ..models import Token
 from pony import orm
 from .. import utils
 
@@ -19,6 +20,18 @@ def log_message(message):
 
 @orm.db_session
 def sync_chart_data():
+
+    log_message("Updating tokens list")
+
+    tokens = utils.make_request("listtokens", ["", True])
+
+    if not tokens["error"]:
+        for name in tokens["result"]:
+            token = Token.get(name=name)
+
+            if not token:
+                log_message(f"Added {name} to db")
+                Token(name=name)
 
     if not BlockService.latest_block():
         data = Block.height(0)["result"]
