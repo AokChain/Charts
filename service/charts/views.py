@@ -1,4 +1,4 @@
-from ..models import TransactionTick, AddressTick
+# from ..models import TransactionTick, AddressTick
 from webargs.flaskparser import use_args
 from ..models import PriceTick
 from flask import Blueprint
@@ -6,7 +6,7 @@ from .args import page_args
 from pony import orm
 import math
 
-blueprint = Blueprint("chart", __name__, url_prefix="/chart")
+blueprint = Blueprint("chart", __name__)
 
 @blueprint.route("/price", methods=["GET"])
 @use_args(page_args, location="query")
@@ -37,60 +37,60 @@ def price(args):
 
     return result
 
-@blueprint.route("/transactions", methods=["GET"])
-@use_args(page_args, location="query")
-@orm.db_session
-def transactions(args):
-    result = {"error": None, "data": {}}
-    size = 20
+# @blueprint.route("/transactions", methods=["GET"])
+# @use_args(page_args, location="query")
+# @orm.db_session
+# def transactions(args):
+#     result = {"error": None, "data": {}}
+#     size = 20
 
-    txticks = TransactionTick.select().order_by(
-        lambda t: orm.desc(t.timestamp)
-    )
+#     txticks = TransactionTick.select().order_by(
+#         lambda t: orm.desc(t.timestamp)
+#     )
 
-    total = txticks.count(distinct=False)
-    pages = math.ceil(total / size)
-    current = args["page"]
+#     total = txticks.count(distinct=False)
+#     pages = math.ceil(total / size)
+#     current = args["page"]
 
-    result["data"]["pagination"] = {
-        "current": current,
-        "total": total,
-        "pages": pages
-    }
+#     result["data"]["pagination"] = {
+#         "current": current,
+#         "total": total,
+#         "pages": pages
+#     }
 
-    txticks = txticks.page(current, size)
-    result["data"]["list"] = []
+#     txticks = txticks.page(current, size)
+#     result["data"]["list"] = []
 
-    for txtick in txticks:
-        result["data"]["list"].append(txtick.display)
+#     for txtick in txticks:
+#         result["data"]["list"].append(txtick.display)
 
-    return result
+#     return result
 
-@blueprint.route("/addresses", methods=["GET"])
-@use_args(page_args, location="query")
-@orm.db_session
-def addresses(args):
-    result = {"error": None, "data": {}}
-    size = 20
+# @blueprint.route("/addresses", methods=["GET"])
+# @use_args(page_args, location="query")
+# @orm.db_session
+# def addresses(args):
+#     result = {"error": None, "data": {}}
+#     size = 20
 
-    addrticks = AddressTick.select().order_by(
-        lambda a: orm.desc(a.timestamp)
-    )
+#     addrticks = AddressTick.select().order_by(
+#         lambda a: orm.desc(a.timestamp)
+#     )
 
-    total = addrticks.count(distinct=False)
-    pages = math.ceil(total / size)
-    current = args["page"]
+#     total = addrticks.count(distinct=False)
+#     pages = math.ceil(total / size)
+#     current = args["page"]
 
-    result["data"]["pagination"] = {
-        "current": current,
-        "total": total,
-        "pages": pages
-    }
+#     result["data"]["pagination"] = {
+#         "current": current,
+#         "total": total,
+#         "pages": pages
+#     }
 
-    addrticks = addrticks.page(current, size)
-    result["data"]["list"] = []
+#     addrticks = addrticks.page(current, size)
+#     result["data"]["list"] = []
 
-    for addrtick in addrticks:
-        result["data"]["list"].append(addrtick.display)
+#     for addrtick in addrticks:
+#         result["data"]["list"].append(addrtick.display)
 
-    return result
+#     return result

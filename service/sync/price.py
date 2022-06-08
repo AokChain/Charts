@@ -16,12 +16,12 @@ def sync_price():
             "%Y-%m-%dT%H:%M:%S.%fZ"
         ))
 
-        if not (pricetick := PriceTick.get_for_update(timestamp=timestamp)):
-            pricetick = PriceTick(timestamp=timestamp)
+        if not (price_tick := PriceTick.get_for_update(timestamp=timestamp)):
+            price_tick = PriceTick(timestamp=timestamp)
 
-        pricetick.cap = market_data["fully_diluted_valuation"]["usd"]
-        pricetick.price = market_data["current_price"]["usd"]
-        pricetick.volume = market_data["total_volume"]["usd"]
+        price_tick.cap = market_data["fully_diluted_valuation"]["usd"]
+        price_tick.price = market_data["current_price"]["usd"]
+        price_tick.volume = market_data["total_volume"]["usd"]
 
     except requests.exceptions.RequestException:
         print("Request to CoinGecko API failed")
