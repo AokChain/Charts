@@ -1,14 +1,31 @@
 from ..models import TransactionTick
+from ..services import BlockService
 from ..models import AddressTick
 from ..models import PriceTick
 from ..models import TokenTick
-from datetime import datetime
 from flask import Blueprint
 from ..models import Stats
 from .. import constants
 from pony import orm
 
 blueprint = Blueprint("stats", __name__)
+
+@blueprint.route("/stats/latest", methods=["GET"])
+@orm.db_session
+def latest():
+    if not (latest_block := BlockService.latest_block()):
+        return {
+            "error": "Sync not started", "result": None
+        }
+
+    return {"error": None, "result": {
+        "created": int(latest_block.created.timestamp()),
+        "blockhash": latest_block.blockhash,
+        "transactions": latest_block.transactions,
+        "addresses": latest_block.addresses,
+        "tokens": latest_block.tokens,
+        "height": latest_block.height
+    }}
 
 @blueprint.route("/stats/general", methods=["GET"])
 @orm.db_session

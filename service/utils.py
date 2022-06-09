@@ -57,9 +57,3 @@ def make_request(method, params=[]):
         return requests.post(config.endpoint, headers=headers, data=data).json()
     except Exception:
         return dead_response()
-
-def satoshis(value):
-    return int(float(value) * math.pow(10, 8))
-
-def amount(value, decimals=8):
-    return round(float(value) / math.pow(10, decimals), decimals)
