@@ -13,6 +13,31 @@ def round_day(created):
         microseconds=created.microsecond
     )
 
+def round_week(created):
+    return created - timedelta(
+        days=created.weekday(),
+        hours=created.hour,
+        minutes=created.minute,
+        seconds=created.second,
+        microseconds=created.microsecond
+    )
+
+def round_month(created):
+    return created.replace(day=1) - timedelta(
+        hours=created.hour,
+        minutes=created.minute,
+        seconds=created.second,
+        microseconds=created.microsecond
+    )
+
+def round_year(created):
+    return created.replace(day=1).replace(month=1) - timedelta(
+        hours=created.hour,
+        minutes=created.minute,
+        seconds=created.second,
+        microseconds=created.microsecond
+    )
+
 def dead_response(message="Invalid Request", rid="aok-charts"):
     return {"error": {"code": 404, "message": message}, "id": rid}
 

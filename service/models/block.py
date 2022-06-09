@@ -17,3 +17,13 @@ class Block(db.Entity):
 
     previous_block = orm.Optional("Block")
     next_block = orm.Optional("Block")
+
+    currency_transactions = orm.Set("CurrencyTransactions")
+
+class CurrencyTransactions(db.Entity):
+    _table_ = "chart_currency_transactions"
+
+    transactions = orm.Required(int)
+    currency = orm.Required(str)
+
+    block = orm.Required("Block")

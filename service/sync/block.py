@@ -3,10 +3,10 @@ from ..services import BlockService
 from ..models import AddressTick
 from ..models import TokenTick
 from datetime import datetime
+from service import constants
 from ..models import Stats
 from pony import orm
 from .. import utils
-import json
 
 def log_block(message, block, tx=[]):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -61,7 +61,7 @@ def sync_chain():
     log_message(f"Current node height: {current_height}, db height: {latest_block.height}")
 
     # Get stats object
-    if not(stats := Stats.select().for_update().first()):
+    if not (stats := Stats.select().for_update().first()):
         stats = Stats()
 
     while latest_block.blockhash != get_block_hash(latest_block.height):
@@ -74,14 +74,46 @@ def sync_chain():
         stats.addresses -= reorg_block.addresses
         stats.tokens -= reorg_block.tokens
 
-        if (transactions_tick := TransactionTick.get_for_update(timestamp=timestamp)):
-            transactions_tick.transactions -= reorg_block.transactions
+        for interval in constants.INTERVALS:
+            if constants.INTERVALS[interval] == constants.Interval.DAY:
+                timestamp = utils.round_day(block.created)
 
-        if (addresses_tick := AddressTick.get_for_update(timestamp=timestamp)):
-            addresses_tick.addresses -= reorg_block.addresses
+            elif constants.INTERVALS[interval] == constants.Interval.WEEK:
+                timestamp = utils.round_week(block.created)
+            
+            elif constants.INTERVALS[interval] == constants.Interval.MONTH:
+                timestamp = utils.round_month(block.created)
 
-        if (tokens_tick := TokenTick.get_for_update(timestamp=timestamp)):
-            tokens_tick.tokens -= reorg_block.tokens
+            else:
+                timestamp = utils.round_year(block.created)
+
+            if (token_tick := TokenTick.get_for_update(
+                timestamp=timestamp, interval=constants.INTERVALS[interval]
+            )):
+                token_tick.value -= reorg_block.tokens
+
+                if token_tick.value <= 0:
+                    token_tick.delete()
+
+            if (address_tick := AddressTick.get_for_update(
+                timestamp=timestamp, interval=constants.INTERVALS[interval]
+            )):
+                address_tick.value -= reorg_block.addresses
+
+                if address_tick.value <= 0:
+                    address_tick.delete()
+
+            for currency in block.currency_transactions:
+                if (transaction_tick := TransactionTick.get_for_update(
+                    timestamp=timestamp, interval=constants.INTERVALS[interval],
+                    currency=currency
+                )):
+                    transaction_tick.value -= currency.transactions
+
+                    if transaction_tick.value <= 0:
+                        transaction_tick.delete()
+                
+                currency.delete()
 
         reorg_block.delete()
         orm.commit()
@@ -89,6 +121,7 @@ def sync_chain():
     for height in range(latest_block.height + 1, current_height + 1):
         block_data = get_block(get_height(height))
         created = datetime.fromtimestamp(block_data["time"])
+        stake = block_data["flags"] == "proof-of-stake"
 
         block = BlockService.create(
             block_data["hash"], block_data["height"], created
@@ -96,12 +129,13 @@ def sync_chain():
 
         block.previous_block = latest_block
 
-        transactions = 0
+        currency_transactions = {"AOK": 0}
         addresses = 0
         tokens = 0
 
-        for txid in block_data["tx"]:
-            transactions += 1
+        for index, txid in enumerate(block_data["tx"]):
+            if stake and index <= 1:
+                continue
 
             tx = get_transaction(txid)
 
@@ -110,37 +144,75 @@ def sync_chain():
                     addresses += len(vin["scriptPubKey"]["addresses"])
 
             for vout in tx["vout"]:
-                if "scriptPubKey" in vout and vout["scriptPubKey"]["type"] == "new_token":
-                    if "!" not in vout["scriptPubKey"]["token"]["name"]:
-                        tokens += 1
+                if "scriptPubKey" in vout and "token" in vout["scriptPubKey"]:
+                    currency = vout["scriptPubKey"]["token"]["name"]
 
-        block.transactions += transactions
+                    if vout["scriptPubKey"]["type"] == "new_token":
+                        if "!" not in currency:
+                            tokens += 1
+
+                    currency_transactions[currency] += 1
+
+            currency_transactions["AOK"] += 1
+
+        block.transactions += currency_transactions["AOK"]
         block.addresses += addresses
         block.tokens += tokens
 
-        stats.transactions += transactions
+        stats.transactions += currency_transactions["AOK"]
         stats.addresses += addresses
         stats.tokens += tokens
 
-        timestamp = utils.round_day(block.created)
+        # Make ticks for day, month and year
+        for interval in constants.INTERVALS:
+            if constants.INTERVALS[interval] == constants.Interval.DAY:
+                timestamp = utils.round_day(block.created)
 
-        if not (transactions_tick := TransactionTick.get_for_update(timestamp=timestamp)):
-            transactions_tick = TransactionTick(timestamp=timestamp)
+            elif constants.INTERVALS[interval] == constants.Interval.WEEK:
+                timestamp = utils.round_week(block.created)
+            
+            elif constants.INTERVALS[interval] == constants.Interval.MONTH:
+                timestamp = utils.round_month(block.created)
 
-        transactions_tick.transactions += transactions
+            else:
+                timestamp = utils.round_year(block.created)
 
-        if not (addresses_tick := AddressTick.get_for_update(timestamp=timestamp)):
-            addresses_tick = AddressTick(timestamp=timestamp)
+            # Generate tokens tick
+            if not (token_tick := TokenTick.get_for_update(
+                timestamp=timestamp, interval=constants.INTERVALS[interval]
+            )):
+                token_tick = TokenTick(
+                    timestamp=timestamp, interval=constants.INTERVALS[interval]
+                )
 
-        addresses_tick.addresses += addresses
+            token_tick.value += tokens
 
-        if not (tokens_tick := TokenTick.get_for_update(timestamp=timestamp)):
-            tokens_tick = TokenTick(timestamp=timestamp)
+            # Generate address tick
+            if not (address_tick := AddressTick.get_for_update(
+                timestamp=timestamp, interval=constants.INTERVALS[interval]
+            )):
+                address_tick = AddressTick(
+                    timestamp=timestamp, interval=constants.INTERVALS[interval]
+                )
 
-        tokens_tick.tokens += tokens
+            address_tick.value += addresses
+
+            # Generate transaction tick for each currency involved
+            for currency in currency_transactions:
+                if not (transaction_tick := TransactionTick.get_for_update(
+                    timestamp=timestamp, interval=constants.INTERVALS[interval],
+                    currency=currency
+                )):
+                    transaction_tick = TransactionTick(
+                        timestamp=timestamp, interval=constants.INTERVALS[interval],
+                        currency=currency
+                    )
+
+                transaction_tick.value += currency_transactions[currency]
 
         latest_block = block
 
         log_block("New block", block, block_data["tx"])
 
-        orm.commit()
+        if block.height % 1000 == 0:
+            orm.commit()

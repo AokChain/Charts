@@ -1,96 +1,107 @@
-# from ..models import TransactionTick, AddressTick
+from .args import filter_args, transactions_args
 from webargs.flaskparser import use_args
+from ..models import TransactionTick
+from ..models import AddressTick
 from ..models import PriceTick
+from ..models import TokenTick
+from datetime import datetime
 from flask import Blueprint
-from .args import page_args
+from ..models import Stats
+from .. import constants
 from pony import orm
-import math
 
-blueprint = Blueprint("chart", __name__)
+blueprint = Blueprint("charts", __name__)
 
-@blueprint.route("/price", methods=["GET"])
-@use_args(page_args, location="query")
-@orm.db_session
-def price(args):
-    result = {"error": None, "data": {}}
-    size = 20
+def get_ticks(model, resolution, after, currency=None):
+    limit = constants.INTERVALS_LIMIT[resolution]
+    interval = constants.INTERVALS[resolution]
 
-    priceticks = PriceTick.select().order_by(
-        lambda p: orm.desc(p.timestamp)
+    ticks = model.select(
+        lambda t: t.interval == interval
+    ).order_by(
+        lambda t: orm.desc(t.timestamp)
     )
 
-    total = priceticks.count(distinct=False)
-    pages = math.ceil(total / size)
-    current = args["page"]
+    if after:
+        ticks = ticks.filter(
+            lambda t: t.timestamp < datetime.fromtimestamp(after)
+        )
 
-    result["data"]["pagination"] = {
-        "current": current,
-        "total": total,
-        "pages": pages
+    if currency:
+        ticks = ticks.filter(
+            lambda t: t.currency == currency
+        )
+
+    return ticks.limit(limit)
+
+@blueprint.route("/chart/price", methods=["GET"])
+@use_args(filter_args, location="query")
+@orm.db_session
+def price_chart(args):
+    result = []
+
+    for tick in get_ticks(PriceTick, args["resolution"], args["after"]):
+        result.append({
+            "timestamp": int(tick.timestamp.timestamp()),
+            "value": round(tick.price, 4),
+        })
+
+    return {
+        "error": None, "result": result
     }
 
-    priceticks = priceticks.page(current, size)
-    result["data"]["list"] = []
+@blueprint.route("/chart/transactions", methods=["GET"])
+@use_args(transactions_args, location="query")
+@orm.db_session
+def transactions_chart(args):
+    result = []
 
-    for pricetick in priceticks:
-        result["data"]["list"].append(pricetick.display)
+    for tick in get_ticks(
+        TransactionTick, args["resolution"],
+        args["after"], args["currency"]
+    ):
+        result.append({
+            "timestamp": int(tick.timestamp.timestamp()),
+            "value": tick.value,
+        })
 
-    return result
+    return {
+        "error": None, "result": result
+    }
 
-# @blueprint.route("/transactions", methods=["GET"])
-# @use_args(page_args, location="query")
-# @orm.db_session
-# def transactions(args):
-#     result = {"error": None, "data": {}}
-#     size = 20
 
-#     txticks = TransactionTick.select().order_by(
-#         lambda t: orm.desc(t.timestamp)
-#     )
+@blueprint.route("/chart/addresses", methods=["GET"])
+@use_args(filter_args, location="query")
+@orm.db_session
+def addresses_chart(args):
+    result = []
 
-#     total = txticks.count(distinct=False)
-#     pages = math.ceil(total / size)
-#     current = args["page"]
+    for tick in get_ticks(
+        AddressTick, args["resolution"], args["after"]
+    ):
+        result.append({
+            "timestamp": int(tick.timestamp.timestamp()),
+            "value": tick.value,
+        })
 
-#     result["data"]["pagination"] = {
-#         "current": current,
-#         "total": total,
-#         "pages": pages
-#     }
+    return {
+        "error": None, "result": result
+    }
 
-#     txticks = txticks.page(current, size)
-#     result["data"]["list"] = []
+@blueprint.route("/chart/tokens", methods=["GET"])
+@use_args(filter_args, location="query")
+@orm.db_session
+def tokens_chart(args):
+    result = []
 
-#     for txtick in txticks:
-#         result["data"]["list"].append(txtick.display)
+    for tick in get_ticks(
+        TokenTick, args["resolution"], args["after"]
+    ):
+        result.append({
+            "timestamp": int(tick.timestamp.timestamp()),
+            "value": tick.value,
+        })
 
-#     return result
-
-# @blueprint.route("/addresses", methods=["GET"])
-# @use_args(page_args, location="query")
-# @orm.db_session
-# def addresses(args):
-#     result = {"error": None, "data": {}}
-#     size = 20
-
-#     addrticks = AddressTick.select().order_by(
-#         lambda a: orm.desc(a.timestamp)
-#     )
-
-#     total = addrticks.count(distinct=False)
-#     pages = math.ceil(total / size)
-#     current = args["page"]
-
-#     result["data"]["pagination"] = {
-#         "current": current,
-#         "total": total,
-#         "pages": pages
-#     }
-
-#     addrticks = addrticks.page(current, size)
-#     result["data"]["list"] = []
-
-#     for addrtick in addrticks:
-#         result["data"]["list"].append(addrtick.display)
-
-#     return result
+    return {
+        "error": None, "result": result
+    }

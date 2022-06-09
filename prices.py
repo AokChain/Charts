@@ -12,19 +12,37 @@ with orm.db_session:
 
         for i in range(0, len(marker["prices"]) - 1):
             price = marker["prices"][i]
-            timestamp = utils.round_day(datetime.fromtimestamp(price[0] / 1000))
             cap = supply["market_data"]["max_supply"] * price[1]
             volume = marker["total_volumes"][i]
 
-            if PriceTick.get(timestamp=timestamp):
-                continue
+            created = datetime.fromtimestamp(price[0] / 1000)
 
-            PriceTick(**{
-                "timestamp": timestamp,
-                "volume": volume[1],
-                "price": price[1],
-                "cap": cap,
-            })
+            for interval in constants.INTERVALS:
+                if constants.INTERVALS[interval] == constants.Interval.DAY:
+                    timestamp = utils.round_day(created)
+
+                elif constants.INTERVALS[interval] == constants.Interval.WEEK:
+                    timestamp = utils.round_week(created)
+                
+                elif constants.INTERVALS[interval] == constants.Interval.MONTH:
+                    timestamp = utils.round_month(created)
+
+                else:
+                    timestamp = utils.round_year(created)
+
+                if PriceTick.get(
+                    interval=constants.INTERVALS[interval],
+                    timestamp=timestamp
+                ):
+                    continue
+
+                PriceTick(**{
+                    "interval": constants.INTERVALS[interval],
+                    "timestamp": timestamp,
+                    "volume": volume[1],
+                    "price": price[1],
+                    "cap": cap,
+                })
 
         print("Prices recorded")
 

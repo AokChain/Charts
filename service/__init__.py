@@ -12,8 +12,10 @@ def create_app():
     CORS(app)
 
     with app.app_context():
-        from .charts import chart
+        from .charts import charts
+        from .stats import stats
 
         app.register_blueprint(charts)
+        app.register_blueprint(stats)
 
         return app

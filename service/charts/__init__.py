@@ -1,1 +1,1 @@
-from .views import blueprint as chart
+from .views import blueprint as charts
