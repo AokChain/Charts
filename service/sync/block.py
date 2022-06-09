@@ -147,11 +147,11 @@ def sync_chain():
                 if "scriptPubKey" in vout and "token" in vout["scriptPubKey"]:
                     currency = vout["scriptPubKey"]["token"]["name"]
 
-                    if vout["scriptPubKey"]["type"] == "new_token":
-                        if "!" not in currency:
+                    if "!" not in currency:
+                        if vout["scriptPubKey"]["type"] == "new_token":
                             tokens += 1
 
-                    currency_transactions[currency] += 1
+                        currency_transactions[currency] += 1
 
             currency_transactions["AOK"] += 1
 
