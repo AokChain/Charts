@@ -151,6 +151,9 @@ def sync_chain():
                         if vout["scriptPubKey"]["type"] == "new_token":
                             tokens += 1
 
+                        if currency not in currency_transactions:
+                            currency_transactions[currency] = 0
+
                         currency_transactions[currency] += 1
 
             currency_transactions["AOK"] += 1
