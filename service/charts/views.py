@@ -47,7 +47,7 @@ def price_chart(args):
         })
 
     return {
-        "error": None, "result": result
+        "error": None, "data": result
     }
 
 @blueprint.route("/chart/transactions", methods=["GET"])
@@ -66,7 +66,7 @@ def transactions_chart(args):
         })
 
     return {
-        "error": None, "result": result
+        "error": None, "data": result
     }
 
 
@@ -85,7 +85,7 @@ def addresses_chart(args):
         })
 
     return {
-        "error": None, "result": result
+        "error": None, "data": result
     }
 
 @blueprint.route("/chart/tokens", methods=["GET"])
@@ -103,5 +103,5 @@ def tokens_chart(args):
         })
 
     return {
-        "error": None, "result": result
+        "error": None, "data": result
     }
