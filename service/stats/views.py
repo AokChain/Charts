@@ -56,7 +56,7 @@ def general():
 
     return {
         "error": None,
-        "data": {
+        "result": {
             "addresses": stats.addresses,
             "transactions": stats.transactions,
             "tokens": stats.tokens,
@@ -91,7 +91,7 @@ def price():
 
     return {
         "error": None,
-        "data": {
+        "result": {
             "price": amnt(ticks[0].price),
             "marketcap": amnt(ticks[0].cap),
             "volume": amnt(ticks[0].volume),
