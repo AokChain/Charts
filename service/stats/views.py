@@ -51,21 +51,16 @@ def general():
 
         change.append(value_change)
 
-    # ToDo: Nodes change
-    node_change = 0
-
     return {
         "error": None,
         "result": {
             "addresses": stats.addresses,
             "transactions": stats.transactions,
             "tokens": stats.tokens,
-            "nodes": stats.nodes,
             "change": {
                 "addresses": change[0],
                 "transactions": change[1],
-                "tokens": change[2],
-                "nodes": node_change
+                "tokens": change[2]
             }
         }
     }
@@ -76,7 +71,9 @@ def price():
     diff = lambda a, b : round(((a - b) / a) * 100, 2)
     amnt = lambda a : round(a, 4)
 
-    ticks = PriceTick.select().order_by(
+    ticks = PriceTick.select(
+        lambda t: t.interval == constants.Interval.DAY
+    ).order_by(
         lambda t: orm.desc(t.timestamp)
     ).limit(2)
 
